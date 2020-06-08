@@ -42,13 +42,17 @@ int steer;
 int ch2; // Throttle
 int throt;
 
-int ch3; // Throttle
-int elev;
+int ch5; // KillSwitch
+int kill;
+
+int ch6; // Serial Delay
+int pause;
+
 
 //Output Variables
 //----------------
-CytronMD motor1(PWM_DIR, 3, 4);   // PWM 1A = Pin 3, PWM 1B = Pin 9.
-CytronMD motor2(PWM_DIR, 9, 10); // PWM 2A = Pin 10, PWM 2B = Pin 11.
+CytronMD motor1(PWM_DIR, 9, 8);   // PWM1 = Pin 9 , DIR1 = Pin 8.
+CytronMD motor2(PWM_DIR, 11, 13); // PWM2 = Pin 11, DIR2 = Pin 13.
 
 
 
@@ -62,59 +66,82 @@ int angle = 0;
 void setup() {
 
   
-  pinMode(5, INPUT); // Set our input pins as such
-  pinMode(6, INPUT);
-  pinMode(7, INPUT);
+  pinMode(22, INPUT); // Set our input pins as such
+  pinMode(23, INPUT);
+  pinMode(41, INPUT); // Set our input pins as such
+  pinMode(24, INPUT);
 
-  servo_test.attach(9); 
+
+  servo_test.attach(31); 
   
-  Serial.begin(9600); // Pour a bowl of Serial
+  Serial.begin(19200); // Pour a bowl of Serial
 
 }
 
 void loop() {
-
-  ch1 = pulseIn(5, HIGH, 25000); // Read the pulse width of 
-  Serial.print("Channel 1: ");
-  Serial.println(ch1);
-  if (ch1<100 || ch1>5000) // no signal or weird signal!
-    { failsafe();}
-  ch2 = pulseIn(6, HIGH, 25000); // each channel
-  Serial.print("Channel 2: ");
-  Serial.println(ch2);
-  if (ch2<100 || ch1>5000) // no signal or weird signal!
-    { failsafe();}
-  ch3 = pulseIn(7, HIGH, 25000);
-  Serial.print("Channel 3: ");
-  Serial.println(ch3);
-  if (ch3<100 || ch1>5000) // no signal or weird signal!
-    { failsafe();}
-
-  //Throttle
-  Serial.print("Throttle:"); // Ch2 is Throttle
-  throt=map(ch2, 1000,2000,0,100);
-  Serial.println(throt); // 0 to 100
-
-  Serial.print("Steering:"); // Ch1 is Steering
-  steer=map(ch1, 1000,2000,-500,500);
+  //Read Knob
+  ch6 = pulseIn(41, HIGH, 25000); // Read the pulse width of Channel 1
+  if(ch6<1000)
+    {ch6=1000;}
+  pause=map(ch6, 1000,2200,1,5000);
   
-  Serial.println(steer); // 0 to 100
+  //Read KillSwitch
+  ch5 = pulseIn(24, HIGH, 25000); // Read the pulse width of Channel 1
+  
+  if (ch5>1800) //Check for killswitch and failsafe.
+    { Serial.println("Failsafe");
+    }else{
+      //Read Steering
+      ch1 = pulseIn(22, HIGH, 25000); // Read the pulse width of Channel 1
+      //Add Steering Deadband
+      if (ch1<1550 && ch1>1450)
+        {ch1=1500;}
+      steer=map(ch1, 1000,2000,-500,500);
+      
+      //Read Throttle
+      ch2 = pulseIn(23, HIGH, 25000);// Read the pulse width of Channel 2
+      if (ch2<1550 && ch2>1450)
+        {ch2=1500;}
+      throt=map(ch2, 1000,2000,-500,500);
+    
+    
+    
+    
+      Serial.print("Ch1  : ");
+      Serial.println(ch1);
+      
+      Serial.print("Steer: ");
+      Serial.println(steer);
+      
+      Serial.print("Ch2  : ");
+      Serial.println(ch2);
+      
+      Serial.print("Throt: ");
+      Serial.println(throt);
+      
+      Serial.print("Ch5  : ");
+      Serial.println(ch5);
 
-  //Throttle Control
-  motor1.setSpeed(map(throt,0,100,0,128));
-  motor2.setSpeed(map(throt,0,100,0,128));
+      Serial.print("Ch6  : ");
+      Serial.println(ch6);
 
-  angle = map(steer, -500, 500, 0, 179);     // scaling the potentiometer value to angle value for servo between 0 and 180) 
-  servo_test.write(angle);                   //command to rotate the servo to the specified angle 
- 
-
-  delay(5); // I put this here just to make the terminal 
+      
+    
+      //Throttle Control
+      motor1.setSpeed(map(throt,0,100,0,128));
+      motor2.setSpeed(map(throt,0,100,0,128));
+    
+      angle = map(steer, -500, 500, 0, 179);     // scaling the potentiometer value to angle value for servo between 0 and 180) 
+      servo_test.write(angle);                   //command to rotate the servo to the specified angle 
+      Serial.print("Ang  : ");
+      Serial.println(angle);
+  }
+    
+  Serial.println(" ");
+  delay(pause); // I put this here just to make the terminal 
               // window happier
 }
 
 void mixing() {
   
-}
-void failsafe(){
-  Serial.println("Failsafe");
 }
